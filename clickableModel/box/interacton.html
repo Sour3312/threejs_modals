@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <p id="webgl">bnbn</p>
+    <script src="https://jasonchen1982.github.io/three.interaction.js/build/three.interaction.js"></script>
+    <script src="https://threejs.org/build/three.js"></script>
+
+    <script src="https://jasonchen1982.github.io/three.interaction.js/build/three.interaction.js"></script>
+    <script type="module">
+        import { GLTFLoader } from "https://threejsfundamentals.org/threejs/resources/threejs/r119/examples/jsm/loaders/GLTFLoader.js";
+        window.addEventListener('resize', onWindowResize, false);
+
+        var WIDTH = window.innerWidth;
+        var HEIGHT = window.innerHeight;
+        var camera = new THREE.PerspectiveCamera(85, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(1, 2, 18);
+        var renderer = new THREE.WebGLRenderer({
+            // canvas: document.querySelector('#webgl'),
+            antialias: true,
+        });
+        renderer.setClearColor(0x41b882);
+        renderer.setSize(WIDTH, HEIGHT);
+        document.body.appendChild(renderer.domElement);
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        var scene = new THREE.Scene();
+
+        //model	
+        let model;
+
+        //object
+        var object = new THREE.Object3D();
+        // Instantiate a loader
+        var loader = new GLTFLoader();
+
+        // Load a glTF resource
+        loader.load(
+            // resource URL
+            'Model_1.glb',
+            // called when the resource is loaded
+            function (gltf) {
+
+                //model wird die gesamte importierte Szene
+                model = gltf.scene;
+
+                //diese Szene fuegen wir der eigtl Szene hinzu
+                scene.add(model);
+
+                object = scene.getObjectByName("Cube");
+                scene.add(object);
+            },
+            // called while loading is progressing
+            function (xhr) {
+
+                console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+
+            },
+            // called when loading has errors
+            function (error) {
+
+                console.error('An error happened:', error);
+
+            }
+        );
+
+        var interaction = new THREE.Interaction(renderer, scene, camera);
+
+        var cube = new THREE.Mesh(
+            new THREE.BoxGeometry(3, 3, 3),
+            new THREE.MeshPhongMaterial({ color: 0xffffff })
+        );
+
+        cube.position.y = -2;
+        cube.position.z = -10;
+        scene.add(cube);
+
+        var box = document.querySelector('#event-box');
+
+        cube.on('click', function (ev) {
+            blink(document.querySelector('#click'));
+            console.log('%c' + cube.name + '%c => click', 'color: #fff; background: #41b882; padding: 3px 4px;', 'color: #41b882; background: #fff;');
+        });
+
+
+
+        var render = function () {
+            //object.rotation.y += 0.01;
+            renderer.render(scene, camera);
+            requestAnimationFrame(render);
+            object.rotation.x += 0.01;
+
+        }
+        render();
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function blink(dom) {
+            clearTimeout(dom.timer);
+            dom.className = 'marker active';
+            dom.timer = setTimeout(function () {
+                dom.className = 'marker';
+            }, 300);
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body {
+            background-color: #000;
+            margin: 0px;
+            overflow: hidden;
+        }
+    </style>
+</head>
+
+<body>
+    <script type="module">
+        import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.119.1/build/three.module.js";
+        import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.119.1/examples/jsm/controls/OrbitControls.js";
+
+        var camera, scene, renderer;
+
+        var data = [
+            {
+                id: 10075,
+                size: 3,
+                slot: 0
+            },
+            {
+                id: 10174,
+                size: 7,
+                slot: 3
+            }
+        ];
+
+        var rackListGroup;
+
+        init();
+
+        function init() {
+            console.log("1");
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x99999);
+
+            var light = new THREE.AmbientLight(0xffffff);
+            light.position.set(0.5, 1.0, 0.5).normalize();
+
+            scene.add(light);
+
+            camera = new THREE.PerspectiveCamera(
+                75,
+                window.innerWidth / window.innerHeight,
+                0.1,
+                1000
+            );
+            camera.position.fromArray([0, 0, 140]);
+            scene.add(camera);
+
+            renderer = new THREE.WebGLRenderer({
+                antialias: true
+            });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+            // renderer.domElement.addEventListener("click", () => {
+            //   console.log("ew");
+            // });
+
+            var controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableZoom = true;
+            controls.enablePan = true;
+            controls.addEventListener("change", render);
+            controls.update();
+            controls.domElement.addEventListener("click", () => {
+                console.log("ew");
+            });
+
+            rackListGroup = new THREE.Mesh();
+            rackListGroup.name = "Rack List";
+            var i;
+
+            for (i = 0; i < 1; i++) {
+                rackListGroup.add(drawRack(10, i));
+            }
+
+            scene.add(rackListGroup);
+            render();
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+
+            renderer.setSize(window.innerWidth, window.innerHeight);
+
+            render();
+        }
+
+        function render() {
+            renderer.render(scene, camera);
+        }
+
+        function drawRack(size, rackNo) {
+            var rackGroup = new THREE.Group();
+            rackGroup.name = "rack " + rackNo;
+            var xPosition = -20 + rackNo * 40;
+            var height = 5;
+            var startPosition = 0;
+
+            for (var i = 0; i < data.length; i++) {
+                var slot = data[i].slot;
+                var size = data[i].size;
+
+                var yPosition = startPosition + slot * height + (size * height) / 2;
+
+                var geometry = new THREE.BoxBufferGeometry(30, size * height, 5);
+                var material = new THREE.MeshBasicMaterial({
+                    color: 0xff0000
+                });
+                var shape = new THREE.Mesh(geometry, material);
+                shape.name = data[i].name;
+                shape.position.set(xPosition, yPosition, 0);
+                rackGroup.add(shape);
+
+                var boxGeometry = new THREE.BoxBufferGeometry(
+                    30,
+                    size * height,
+                    5,
+                    1,
+                    1,
+                    1
+                );
+                var boxMaterial = new THREE.MeshBasicMaterial({
+                    wireframe: true
+                });
+                var box = new THREE.Mesh(boxGeometry, boxMaterial);
+                box.name = data[i].name;
+                box.position.set(xPosition, yPosition, 0);
+                rackGroup.add(box);
+            }
+            return rackGroup;
+        }
+
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>mappls-3DModel. - mappls</title>
+    <meta name="description" content="mappls-3DModel." />
+    <meta name="keywords" content="mappls-3DModel, Model" />
+    <link rel="icon" href="https://www.mappls.com/images/favicon.ico" type="image/x-icon" />
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <script
+        src="https://apis.mappls.com/advancedmaps/api/a44f5fb6eda6cd07e15e26c82b7bb3bf/map_sdk?layer=vector&v=3.0&callback=loadMap"></script>
+    <style>
+        body {
+            font-family: Nunito;
+            margin: 0;
+        }
+
+        #map {
+            width: 100%;
+            height: 100vh;
+            position: absolute;
+            z-index: 1;
+            border: none;
+            right: 0;
+        }
+    </style>
+    <script src="./Mapmyindia-3D-v1.js"></script>
+</head>
+
+<body>
+    <div id="map"></div>
+    <script>
+        var map,
+            d = null;
+        /* load map */
+        function loadMap() {
+            var opt = { center: [12.729909729473867, 79.99878650706333], zoom: 12 };
+            map = new mappls.Map("map", opt);
+            map.on("load", function () {
+                map.flyTo({
+                    center: [77, 28],
+                    bearing: 0,
+                    duration: 5000,
+                    pitch: 60,
+                    zoom: 17,
+                });
+                mappls.Model(
+                    {
+                        map: map,
+                        path: "Model_1.glb",
+                        lnglat: [77, 28],
+                        modelId: "111",
+                        mrk: false,
+                    },
+                    function (data) {
+                        d = data;
+                        console.log(JSON.stringify(d))
+                        //  mappls.modelRemove({map:map, id:"111"});
+                    }
+                );
+            });
+        }
+    </script>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "module",
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.119.1/build/three.module.js";
+        import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.119.1/examples/jsm/controls/OrbitControls.js";
+        import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.119.1/examples/jsm/loaders/GLTFLoader.js";
+        import { RGBELoader } from "https://cdn.jsdelivr.net/npm/three@0.119.1/examples/jsm/loaders/RGBELoader.js";
+
+
+        /* 3DModel call */
+        var mrk = "",
+            Uurl = "",
+            burl = "";
+        mappls.model_call = function (parms, mapObj) {
+            // console.log( "parms",parms)
+            var camera = new THREE.PerspectiveCamera(
+                75,
+                window.innerWidth / window.innerHeight,
+                0.25,
+                20
+            );
+            camera.position.set(-1.8, 0.9, 2.7);
+            var scene = new THREE.Scene();
+            var renderer, gltfScene;
+            var raycaster = new THREE.Raycaster();
+            var mouse = new THREE.Vector2(Infinity, Infinity);
+            if (mrk) {
+                mappls.remove({ map: mapObj, layer: mrk });
+                mark = "";
+            }
+            var modelOrigin = parms.lnglat;
+
+            var modelAltitude = 0;
+            var modelRotate = [Math.PI / 2, 0, 0];
+            var modelAsMercatorCoordinate = mapplsgl.MercatorCoordinate.fromLngLat(
+                modelOrigin,
+                modelAltitude
+            );
+            /* transformation parameters to position, rotate and scale the 3D model onto the map */
+            var modelTransform = {
+                translateX: modelAsMercatorCoordinate.x,
+                translateY: modelAsMercatorCoordinate.y,
+                translateZ: modelAsMercatorCoordinate.z,
+                rotateX: modelRotate[0],
+                rotateY: modelRotate[1],
+                rotateZ: modelRotate[2],
+                scale: modelAsMercatorCoordinate.meterInMercatorCoordinateUnits(),
+                // scale: 3.11843220338983e-8
+            };
+
+            /* configuration of the custom layer for a 3D model per the CustomLayerInterface */
+            var lyr = null;
+            lyr = mapObj.addLayer({
+                id: parms.modelId,
+                type: "custom",
+                renderingMode: "3d",
+                onAdd: function (map, gl) {
+                    camera = new THREE.Camera();
+                    scene = new THREE.Scene();
+                    var al = new THREE.AmbientLight("0xffffff", 1.2);
+                    scene.add(al);
+                    // Loader()
+                    var loader = new GLTFLoader()
+                    loader.load(parms.gltf, (gltf) => {
+                        scene.add(gltf.scene);
+                        renderer.render(scene, camera);
+                    })
+                    map = map;
+                    // use the Mapbox GL JS map canvas for three.js
+                    renderer = new THREE.WebGLRenderer({
+                        canvas: map.getCanvas(),
+                        context: gl,
+                        antialias: true,
+                    });
+                    renderer.autoClear = true;
+                    // gltfScene.on('click', onClick);
+                    renderer.domElement.addEventListener("click", onClick);
+
+                    function onClick() {
+                        console.log("DOM");
+                        event.preventDefault();
+                        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                        mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
+                    }
+
+                    function nolr() {
+                        var text = document.createElement('div');
+                        text.className = 'label';
+                        text.style.color = "red"
+                        text.textContent = "atom[ 4 ];"
+                        alert(text)
+                    }
+                },
+
+                render: function (gl, matrix) {
+                    var m = new THREE.Matrix4().fromArray(matrix);
+                    var l = new THREE.Matrix4()
+                        .makeTranslation(
+                            modelTransform.translateX,
+                            modelTransform.translateY,
+                            modelTransform.translateZ
+                        )
+                        .scale(
+                            new THREE.Vector3(
+                                modelTransform.scale,
+                                -modelTransform.scale,
+                                modelTransform.scale
+                            )
+                        );
+                    camera.projectionMatrix = m.multiply(l);
+                    // renderer.resetState();
+                    renderer.render(scene, camera);
+                    map.triggerRepaint();
+                },
+            });
+            if (lyr) lyr.modelId = parms.modelId;
+
+            /* ################## Model Dragable Start ############## */
+            if (parms.mrk) {
+                /* create marker with model */
+                mrk = new mappls.Marker({
+                    map: mapObj,
+                    position: { lat: parms.lnglat[1], lng: parms.lnglat[0] },
+                    fitbounds: false,
+                    width: 35,
+                    height: 40,
+                    popupHtml: parms.modelId.toString(),
+                    draggable: true,
+                    clusters: false,
+                    icon_url: "https://apis.mappls.com/vector_map/thumb/3dbuild.png",
+                });
+                /* Model position Update code on dragend */
+                mrk.on("dragend", function (e) {
+                    modelAsMercatorCoordinate = mapplsgl.MercatorCoordinate.fromLngLat(
+                        [e.target._lngLat.lng, e.target._lngLat.lat],
+                        0
+                    );
+                    // transformation parameters to position, rotate and scale the 3D model onto the map
+                    modelTransform = {
+                        translateX: modelAsMercatorCoordinate.x,
+                        translateY: modelAsMercatorCoordinate.y,
+                        translateZ: modelAsMercatorCoordinate.z,
+                        rotateX: modelRotate[0],
+                        rotateY: modelRotate[1],
+                        rotateZ: modelRotate[2],
+                        /* Since our 3D model is in real world meters, a scale transform needs to be
+                        * applied since the CustomLayerInterface expects units in MercatorCoordinates.
+                        */
+                        scale: modelAsMercatorCoordinate.meterInMercatorCoordinateUnits(),
+                    };
+                });
+            }
+            /* ################## Model Dragable End ############## */
+            return lyr;
+        };
+
+
+        /* 3Dmodel method */
+        mappls.Model = function (obj, success_callback) {
+            var res = {};
+            if (obj.map) {
+                if (
+                    typeof obj.path == "string" &&
+                    (obj.path.indexOf(".glb") > 0 || obj.path.indexOf(".gltf") > 0)
+                ) {
+                    if (obj.hasOwnProperty("lnglat") && obj.hasOwnProperty("modelId")) {
+                        var el = {
+                            gltf: obj.path,
+                            modelId: obj.modelId.toString(),
+                            lnglat: obj.lnglat,
+                            color: obj.color,
+                            mrk: obj.mrk,
+                            mObj: obj.mdata,
+                        };
+                        var ly = null;
+                        ly = mappls.model_call(el, obj.map);
+                        res.layer = ly.modelId;
+                        ly = null;
+                        /* model fitbounds */
+                        res.fitModel = function () {
+                            return mappls.fitBounds({
+                                map: obj.map,
+                                cType: 1,
+                                bounds: [obj.lnglat],
+                                options: { maxZoom: 18 },
+                            });
+                        };
+                        if (
+                            typeof success_callback == "function" &&
+                            success_callback != undefined
+                        ) {
+                            success_callback(res);
+                        } else {
+                            return res;
+                        }
+                    } else {
+                        alert("please provide lanlat and modelId!.");
+                        return false;
+                    }
+                }
+            } else {
+                console.log("please provide map!");
+                return false;
+            }
+        };
+
+        /* Remove 3DModel */
+        mappls.modelRemove = function (parms) {
+            if (parms.map) {
+                if (parms.id.length > 0) {
+                    for (var i = 0; i < parms.id.length; i++) {
+                        if (parms.map.getLayer(parms.id[i])) {
+                            parms.map.removeLayer(parms.id[i]);
+                        }
+                    }
+                } if (typeof parms.id == "string") {
+                    if (parms.map.getLayer(parms.id)) {
+                        parms.map.removeLayer(parms.id);
+                    }
+                }
+            } else { console.warn("pass map!"); }
+        }; </script>
+</body>
+
+</html>
